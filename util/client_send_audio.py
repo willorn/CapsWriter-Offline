@@ -15,9 +15,20 @@ import uuid
 
 async def send_message(message):
     # 发送数据
-    if Cosmic.websocket is None or Cosmic.websocket.closed:
+    # 检查连接是否可用，使用更安全的方式
+    connection_active = Cosmic.websocket is not None
+    try:
+        # 尝试检查closed属性，但不是所有WebSocket实现都有这个属性
+        if hasattr(Cosmic.websocket, 'closed'):
+            connection_active = connection_active and not Cosmic.websocket.closed
+    except Exception:
+        # 如果检查失败，假设连接可用，在发送时再处理可能的错误
+        pass
+        
+    if not connection_active:
         if message['is_final']:
-            Cosmic.audio_files.pop(message['task_id'])
+            if message['task_id'] in Cosmic.audio_files:
+                Cosmic.audio_files.pop(message['task_id'])
             console.print('    服务端未连接，无法发送\n')
     else:
         try:
@@ -28,6 +39,7 @@ async def send_message(message):
         except Exception as e:
             print('出错了')
             print(e)
+
 
 
 async def send_audio():

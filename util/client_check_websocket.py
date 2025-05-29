@@ -28,6 +28,7 @@ async def check_websocket() -> bool:
             Cosmic.websocket = await websockets.connect(f"ws://{Config.addr}:{Config.port}", max_size=None)
             return True
     else:
+        console.print(f"[red]无法连接到服务器。请检查服务器是否运行以及配置是否正确。")
         return False
 
     # for _ in range(3):

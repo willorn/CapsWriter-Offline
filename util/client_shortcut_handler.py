@@ -1,6 +1,13 @@
-import keyboard
+from pynput import keyboard as pynput_keyboard
 from util.client_cosmic import Cosmic, console
 from config import ClientConfig as Config
+import sys
+import platform
+
+# 检查macOS权限
+if platform.system() == 'Darwin':
+    console.print("[yellow]注意：在macOS上，程序需要系统权限才能监听全局快捷键")
+    console.print("[yellow]请在系统偏好设置 -> 安全性与隐私 -> 辅助功能 中添加Python或终端应用程序的访问权限")
 
 import time
 import asyncio
@@ -9,7 +16,6 @@ from concurrent.futures import ThreadPoolExecutor
 from util.client_send_audio import send_audio
 from util.my_status import Status
 
-
 task = asyncio.Future()
 status = Status('开始录音', spinner='point')
 pool = ThreadPoolExecutor()
@@ -17,17 +23,36 @@ pressed = False
 released = True
 event = Event()
 
-
-def shortcut_correct(e: keyboard.KeyboardEvent):
-    # 在我的 Windows 电脑上，left ctrl 和 right ctrl 的 keycode 都是一样的，
-    # keyboard 库按 keycode 判断触发
-    # 即便设置 right ctrl 触发，在按下 left ctrl 时也会触发
-    # 不过，虽然两个按键的 keycode 一样，但事件 e.name 是不一样的
-    # 在这里加一个判断，如果 e.name 不是我们期待的按键，就返回
-    key_expect = keyboard.normalize_name(Config.shortcut).replace('left ', '')
-    key_actual = e.name.replace('left ', '')
-    if key_expect != key_actual: return False
-    return True
+def shortcut_correct(key: pynput_keyboard.Key):
+    # 获取配置中的快捷键
+    shortcut = Config.shortcut.lower()
+    
+    # 处理特殊键，添加macOS的特殊处理
+    special_keys = {
+        'ctrl': pynput_keyboard.Key.ctrl,
+        'ctrl_l': pynput_keyboard.Key.ctrl_l,
+        'ctrl_r': pynput_keyboard.Key.ctrl_r,
+        'alt': pynput_keyboard.Key.alt,
+        'alt_l': pynput_keyboard.Key.alt_l,
+        'alt_r': pynput_keyboard.Key.alt_r,
+        'shift': pynput_keyboard.Key.shift,
+        'shift_l': pynput_keyboard.Key.shift_l,
+        'shift_r': pynput_keyboard.Key.shift_r,
+        'cmd': pynput_keyboard.Key.cmd,
+        'cmd_l': pynput_keyboard.Key.cmd_l,
+        'cmd_r': pynput_keyboard.Key.cmd_r
+    }
+    
+    if shortcut in special_keys:
+        return key == special_keys[shortcut]
+    
+    # 对于普通字符键，直接比较字符
+    try:
+        return key.char.lower() == shortcut
+    except AttributeError:
+        return False
+    
+    return False
 
 
 def launch_task():
@@ -51,7 +76,7 @@ def launch_task():
     # 启动识别任务
     task = asyncio.run_coroutine_threadsafe(
         send_audio(),
-        Cosmic.loop,
+        Cosmic.loop
     )
 
 
@@ -118,80 +143,98 @@ def manage_task(e: Event):
             cancel_task()
 
         # 长按，发送按键
-        keyboard.send(Config.shortcut)
+        pynput_keyboard.Controller().press(Config.shortcut)
+        pynput_keyboard.Controller().release(Config.shortcut)
 
 
-def click_mode(e: keyboard.KeyboardEvent):
+def click_mode(key: pynput_keyboard.Key):
+    """单击模式"""
     global pressed, released, event
 
-    if e.event_type == 'down' and released:
-        pressed, released = True, False
-        event = Event()
+    if shortcut_correct(key):
+        # 重置事件
+        event.clear()
+        # 开始倒计时
         pool.submit(count_down, event)
+        # 之后再判断是单击还是长按
         pool.submit(manage_task, event)
 
-    elif e.event_type == 'up' and pressed:
+    elif key == pynput_keyboard.Key.esc:
         pressed, released = False, True
         event.set()
-
 
 
 # ======================长按模式==================================
 
 
-def hold_mode(e: keyboard.KeyboardEvent):
-    """像对讲机一样，按下录音，松开停止"""
-    global task
-
-    if e.event_type == 'down' and not Cosmic.on:
-        # 记录开始时间
-        launch_task()
-    elif e.event_type == 'up':
-        # 记录持续时间，并标识录音线程停止向队列放数据
-        duration = time.time() - Cosmic.on
-
-        # 取消或停止任务
-        if duration < Config.threshold:
-            cancel_task()
-        else:
-            finish_task()
-
-            # 松开快捷键后，再按一次，恢复 CapsLock 或 Shift 等按键的状态
-            if Config.restore_key:
-                time.sleep(0.01)
-                keyboard.send(Config.shortcut)
-
-
-
-
-
-# ==================== 绑定 handler ===============================
-
-
-def hold_handler(e: keyboard.KeyboardEvent) -> None:
-
-    # 验证按键名正确
-    if not shortcut_correct(e):
+def hold_mode(key: pynput_keyboard.Key, is_press=True):
+    """像对讲机一样，按下录音，松开停止
+    
+    Args:
+        key: 按键对象
+        is_press: 是否是按下事件，如果是False则为松开事件
+    """
+    # 判断是否是目标快捷键
+    if not shortcut_correct(key):
         return
+    
+    # 根据按下或松开执行不同操作
+    if is_press:
+        launch_task()
+    else:
+        finish_task()
+
+
+def hold_handler(key: pynput_keyboard.Key, is_press=True):
+    # 验证按键名正确
+    if not shortcut_correct(key):
+        # 不显示未匹配按键的调试信息
+        return
+    
+    # 只对匹配的按键显示调试信息
+    # print(f"Debug: hold_handler received key: {key}, is_press: {is_press}")
+    # print(f"Debug: Current shortcut: {Config.shortcut}")
 
     # 长按模式
-    hold_mode(e)
+    # print(f"Debug: Key matched, {'starting' if is_press else 'stopping'} hold mode for: {key}")
+    hold_mode(key, is_press)
 
 
-def click_handler(e: keyboard.KeyboardEvent) -> None:
-
+def click_handler(key: pynput_keyboard.Key):
     # 验证按键名正确
-    if not shortcut_correct(e):
+    if not shortcut_correct(key):
+        # 不显示未匹配按键的调试信息
         return
+    
+    # 只对匹配的按键显示调试信息
+    # print(f"Debug: Key pressed: {key}")
+    # print(f"Debug: Shortcut: {Config.shortcut}")
 
     # 单击模式
-    click_mode(e)
+    # print("Debug: Key matched, starting click mode")
+    click_mode(key)
 
 
 def bond_shortcut():
-    if Config.hold_mode:
-        keyboard.hook_key(Config.shortcut, hold_handler, suppress=Config.suppress)
+    # 检查是否是macOS
+    if platform.system() == 'Darwin':
+        console.print("[yellow]注意：在macOS上，程序需要系统权限才能监听全局快捷键")
+        console.print("[yellow]请在系统偏好设置 -> 安全性与隐私 -> 隐私 -> 辅助功能 中添加Python或终端应用程序的访问权限")
+    
+    # 设置键盘监听器
+    
+    if Config.mode == 'hold':
+        # 长按模式需要区分按下和松开事件
+        def on_press(key):
+            return hold_handler(key, is_press=True)
+            
+        def on_release(key):
+            return hold_handler(key, is_press=False)
+            
+        listener = pynput_keyboard.Listener(on_press=on_press, on_release=on_release)
     else:
-        # 单击模式，必须得阻塞快捷键
-        # 收到长按时，再模拟发送按键
-        keyboard.hook_key(Config.shortcut, click_handler, suppress=True)
+        # 单击模式只需要按下事件
+        listener = pynput_keyboard.Listener(on_press=click_handler)
+    
+    print("Debug: Starting keyboard listener")
+    listener.start()

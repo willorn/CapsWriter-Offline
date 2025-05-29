@@ -12,7 +12,7 @@ from typing import List
 
 import typer
 import colorama
-import keyboard
+from pynput import keyboard as pynput_keyboard
 
 from config import ClientConfig as Config
 from util.client_cosmic import console, Cosmic
@@ -37,7 +37,7 @@ colorama.init()
 if system() == 'Darwin' and not sys.argv[1:]:
     if os.getuid() != 0:
         print('在 MacOS 上需要以管理员启动客户端才能监听键盘活动，请 sudo 启动')
-        input('按回车退出'); sys.exit()
+        sys.exit(1)
     else:
         os.umask(0o000)
 
@@ -61,8 +61,24 @@ async def main_mic():
     # Ctrl-C 关闭音频流，触发自动重启
     signal.signal(signal.SIGINT, stream_close)
 
-    # 绑定按键
+    # 绑定快捷键（使用配置文件中的设置）
     bond_shortcut()
+    
+    # 额外绑定功能键
+    def on_press(key):
+        try:
+            if key.char == 'q':  # 按 q 键退出
+                stream_close()
+                sys.exit()
+            elif key.char == 's':  # 按 s 键切换静音状态
+                Cosmic.mute = not Cosmic.mute
+                show_mic_tips()
+        except AttributeError:
+            pass
+
+    # 启动额外功能键监听
+    listener = pynput_keyboard.Listener(on_press=on_press)
+    listener.start()
 
     # 清空物理内存工作集
     if system() == 'Windows':
@@ -88,7 +104,7 @@ async def main_file(files: List[Path]):
 
     if Cosmic.websocket:
         await Cosmic.websocket.close()
-    input('\n按回车退出\n')
+    console.print("\n转录完成\n")
 
 
 def init_mic():

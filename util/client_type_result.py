@@ -1,5 +1,5 @@
 from config import ClientConfig as Config
-import keyboard
+from pynput import keyboard as pynput_keyboard
 import pyclip
 import platform
 import asyncio
@@ -21,12 +21,17 @@ async def type_result(text):
 
         # 粘贴结果
         if platform.system() == 'Darwin':
-            keyboard.press(55)
-            keyboard.press(9)
-            keyboard.release(55)
-            keyboard.release(9)
+            controller = pynput_keyboard.Controller()
+            controller.press(pynput_keyboard.Key.cmd)
+            controller.press('v')
+            controller.release(pynput_keyboard.Key.cmd)
+            controller.release('v')
         else:
-            keyboard.send('ctrl + v')
+            controller = pynput_keyboard.Controller()
+            controller.press(pynput_keyboard.Key.ctrl)
+            controller.press('v')
+            controller.release(pynput_keyboard.Key.ctrl)
+            controller.release('v')
 
         # 还原剪贴板
         if Config.restore_clip:
@@ -35,4 +40,5 @@ async def type_result(text):
 
     # 模拟打印
     else:
-        keyboard.write(text)
+        controller = pynput_keyboard.Controller()
+        controller.type(text)
