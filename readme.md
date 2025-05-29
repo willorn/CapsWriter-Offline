@@ -1,15 +1,27 @@
-## CapsWriter-Offline
+## CapsWriter-Offline (Mac定制版)
 
 ![image-20240108115946521](assets/image-20240108115946521.png)  
 
-这是 `CapsWriter-Offline` ，一个 PC 端的语音输入、字幕转录工具。
+这是 `CapsWriter-Offline` 的Mac定制分支，一个 PC 端的语音输入、字幕转录工具。本分支是 fork 自 [HaujetZhao/CapsWriter-Offline](https://github.com/HaujetZhao/CapsWriter-Offline) 的研究成果，并进行了Mac系统的兼容性优化。
 
 两个功能：
 
-1. 按下键盘上的 `大写锁定键`，录音开始，当松开 `大写锁定键` 时，就会识别你的录音，并将识别结果立刻输入
+1. 按下键盘上的 `右侧Option键`，录音开始，当松开时，就会识别你的录音，并将识别结果立刻输入
 2. 将音视频文件拖动到客户端打开，即可转录生成 srt 字幕
 
-视频教程：[CapsWriter-Offline 电脑端离线语音输入工具](https://www.bilibili.com/video/BV1tt4y1d75s/)  
+原项目视频教程：[CapsWriter-Offline 电脑端离线语音输入工具](https://www.bilibili.com/video/BV1tt4y1d75s/)  
+
+### 本分支特性
+
+* 优化了macOS系统上的键盘快捷键支持，使用右侧Option键作为录音触发键
+* 改进了用户交互体验，移除了不必要的确认提示
+* 优化了WebSocket连接的错误处理
+
+### 测试环境
+
+* Python版本: 3.11
+* 硬件: MacBook Pro 2024 M3 24GB RAM 512GB SSD
+* 系统: macOS 15
 
 ## 特性
 
@@ -21,32 +33,14 @@
 6. 服务端、客户端分离，可以服务多台客户端
 7. 编辑 `config.py` ，可以配置服务端地址、快捷键、录音开关……
 
-## 懒人包
+## 模型和依赖
 
-对 Windows 端：
+本项目需要下载模型文件并安装相关依赖才能运行。在Mac系统上，需要使用sudo权限启动客户端。
 
-1. 请确保电脑上安装了 [Microsoft Visual C++ Redistributable 运行库](https://learn.microsoft.com/zh-cn/cpp/windows/latest-supported-vc-redist)
-2. 服务端载入模型所用的 onnxruntime 只能在 Windows 10 及以上版本的系统使用
-3. 服务端载入模型需要系统内存 4G，只能在 64 位系统上使用
-4. 额外打包了 32 位系统可用的客户端，在 Windows 7 及以上版本的系统可用
-5. 模型文件较大，单独打包，解压模型后请放入软件目录的 `models` 文件夹中
+所有模型和详细说明请参考原项目：
 
-其它系统：
-
-1. 其它系统，可以下载模型、安装依赖后从 Python 源码运行。
-2. 由于我没有 Mac 电脑，无法打包 Mac 版本，只能从源码运行，可能会有诸多问题要解决。（由于系统限制，客户端需要 sudo 启动，且默认快捷键为 `right shift`）
-
-模型说明：
-
-1. 由于模型文件太大，为了方便更新，单独打包
-2. 解压模型后请放入软件目录的 `models` 文件夹中
-
-下载地址：
-
-- 百度盘: https://pan.baidu.com/s/1zNHstoWZDJVynCBz2yS9vg 提取码: eu4c 
-- GitHub Release: [Releases · HaujetZhao/CapsWriter-Offline](https://github.com/HaujetZhao/CapsWriter-Offline/releases) 
-
-（百度网盘容易掉链接，补链接太麻烦了，我不一定会补链接。GitHub Releases 界面下载是最可靠的。）
+- 原项目地址：[HaujetZhao/CapsWriter-Offline](https://github.com/HaujetZhao/CapsWriter-Offline)
+- 模型下载：[Releases · HaujetZhao/CapsWriter-Offline](https://github.com/HaujetZhao/CapsWriter-Offline/releases)
 
 ![image-20240108114351535](assets/image-20240108114351535.png) 
 
@@ -133,80 +127,50 @@
 
 **模型文件太大，并没有包含在 GitHub 库里面，你可以从百度网盘或者 GitHub Releases 界面下载已经转换好的模型文件，解压后，将 `models` 文件夹放到软件根目录** 
 
-## 自启动、隐藏窗口、拖盘图标、Docker
+## Mac系统安装依赖
 
-Windows 隐藏黑窗口启动，见 [\#49](https://github.com/HaujetZhao/CapsWriter-Offline/issues/49)，将下述内容保存为 vbs 运行：
+在 Mac 系统上运行本项目需要安装以下依赖：
 
-```
-CreateObject("Wscript.Shell").Run "start_server.exe",0,True
-CreateObject("Wscript.Shell").Run "start_client.exe",0,True
-```
-
-Windows 自启动，新建快捷方式，放到 `shell:startup` 目录下即可。
-
-带拖盘图标的 GUI 版，见 [H1DDENADM1N/CapsWriter-Offline](https://github.com/H1DDENADM1N/CapsWriter-Offline/tree/GUI-(PySide6)-and-Portable-(PyStand)) 
-
-Docker 版，见 [Garonix/CapsWriter-Offline at docker-support ](https://github.com/Garonix/CapsWriter-Offline/tree/docker-support) 
-
-
-## 源码安装依赖
-
-### \[New\] Linux 端
 ```bash
-# for core_server.py
-pip install -r requirements-server.txt  -i https://mirror.sjtu.edu.cn/pypi/web/simple
-# [NOTE]: kaldi-native-fbank==1.17(使用1.18及以上会报错`lib/python3.10/site-packages/_kaldi_native_fbank.cpython-310-x86_64-linux-gnu.so: undefined symbol: _ZN3knf24OnlineGenericBaseFeatureINS_22WhisperFeatureComputerEE13InputFinishedEv`)
-
-# for core_client.py
-pip install -r requirements-client.txt  -i https://mirror.sjtu.edu.cn/pypi/web/simple
-sudo apt-get install xclip   # 让core_client.py正常运行
-```
-**运行方式**
-`core_server.py`   # 无需以 root 权限运行
-`core_client.py`   # 注意: 必须以 root 权限运行!!
-
-### Windows 端
-
-```powershell
-pip install -r requirements-server.txt
+# 安装客户端依赖
 pip install -r requirements-client.txt
+
+# 安装服务端依赖
+pip install -r requirements-server.txt
 ```
 
-有些依赖在 `Python 3.11` 还暂时不无法安装，建议使用 `Python 3.8 - Python3.10`  
+在 Arm 芯片的 Mac 电脑上（如 M1/M2/M3）无法使用 pip 安装 `sherpa_onnx`，需要手动从源代码安装：
 
-### Mac 端
-
-在 Arm 芯片的 MacOS 电脑上（如 MacBook M1）无法使用 pip 安装 `sherpa_onnx` ，需要手动从源代码安装：
-
-```
+```bash
 git clone https://github.com/k2-fsa/sherpa-onnx
 cd sherpa-onnx
 python3 setup.py install
 ```
 
-在 MacOS 上，安装 `funasr_onnx` 依赖的时候可能会报错，缺失 `protobuf compiler`，可以通过 `brew install protobuf` 解决。
+在 Mac 上，安装 `funasr_onnx` 依赖时可能会报错，缺失 `protobuf compiler`，可以通过以下命令解决：
 
-## 源码运行
-
-1. 运行 `core_server.py` 脚本，会载入 Paraformer 模型识别模型和标点模型（这会占用2GB的内存，载入时长约 50 秒）
-2. 运行 `core_client.py` 脚本，它会打开系统默认麦克风，开始监听按键（`MacOS` 端需要 `sudo`）
-3. 按住 `CapsLock` 键，录音开始，松开 `CapsLock` 键，录音结束，识别结果立马被输入（录音时长短于0.3秒不算）
-
-MacOS 端注意事项：
-
-- MacOS 上监听 `CapsLock` 键可能会出错，需要快捷键修改为其他按键，如 `right shift` 
-
-## 打包方法
-Windows/MacOS/Linux均使用如下命令完成打包:
-`pyinstaller build.spec`
+```bash
+brew install protobuf
+```
 
 ## 运行方式
-### Linux 
-双击 `run.sh` 自动输入sudo密码且实现左右分屏展示
-![](./assets/run-sh.png)
 
-## 打赏
+1. 运行服务端（无需 sudo 权限）：
+   ```bash
+   python core_server.py
+   ```
 
-如果你愿意，可以以打赏的方式支持我一下：
+2. 运行客户端（需要 sudo 权限）：
+   ```bash
+   sudo python core_client.py
+   ```
 
-![sponsor](assets/sponsor.jpg)
+3. 使用右侧 Option 键录音，松开后自动识别并输入文字。
+
+## 原项目
+
+本项目是基于以下原项目进行的Mac系统适配与优化：
+
+- [HaujetZhao/CapsWriter-Offline](https://github.com/HaujetZhao/CapsWriter-Offline)
+
+如需赞助原作者，请访问原项目地址。
