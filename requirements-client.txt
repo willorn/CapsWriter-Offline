@@ -8,3 +8,5 @@ pypinyin
 watchdog
 typer
 srt
+PyQt5
+pynput

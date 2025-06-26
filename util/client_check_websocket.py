@@ -21,7 +21,7 @@ class Handler:
 
 
 async def check_websocket() -> bool:
-    if Cosmic.websocket and not Cosmic.websocket.closed:
+    if Cosmic.websocket and Cosmic.websocket.state == websockets.protocol.State.OPEN:
         return True
     for _ in range(3):
         with Handler():

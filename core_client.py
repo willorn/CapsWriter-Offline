@@ -64,21 +64,7 @@ async def main_mic():
     # 绑定快捷键（使用配置文件中的设置）
     bond_shortcut()
     
-    # 额外绑定功能键
-    def on_press(key):
-        try:
-            if key.char == 'q':  # 按 q 键退出
-                stream_close()
-                sys.exit()
-            elif key.char == 's':  # 按 s 键切换静音状态
-                Cosmic.mute = not Cosmic.mute
-                show_mic_tips()
-        except AttributeError:
-            pass
 
-    # 启动额外功能键监听
-    listener = pynput_keyboard.Listener(on_press=on_press)
-    listener.start()
 
     # 清空物理内存工作集
     if system() == 'Windows':
