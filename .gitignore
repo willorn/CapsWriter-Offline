@@ -26,3 +26,7 @@ package-lock.json
 
 # Ignore yarn.lock for Yarn
 yarn.lock
+
+# Ignore Python cache files
+.pyc
+__pycache__
